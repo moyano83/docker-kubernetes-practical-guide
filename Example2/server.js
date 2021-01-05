@@ -1,5 +1,5 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+const express = require('../Example3/node_modules/express');
+const bodyParser = require('../Example3/node_modules/body-parser');
 
 const app = express();
 

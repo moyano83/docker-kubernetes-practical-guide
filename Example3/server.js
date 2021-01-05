@@ -1,9 +1,9 @@
-const fs = require('fs').promises;
-const exists = require('fs').exists;
-const path = require('path');
+const fs = require('../Example3/node_modules/fs').promises;
+const exists = require('../Example3/node_modules/fs').exists;
+const path = require('../Example3/node_modules/path');
 
-const express = require('express');
-const bodyParser = require('body-parser');
+const express = require('../Example2/node_modules/express');
+const bodyParser = require('../Example2/node_modules/body-parser');
 
 const app = express();
 

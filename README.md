@@ -47,3 +47,26 @@ Docker Networks actually support different kinds of "Drivers" which influence th
 
 
 ## Building Multi-Container Applications with Docker
+On Example 5 you need the following commands:
+
+``` shell
+# Create the network
+docker network create goals-net
+
+# build backend
+cd backend
+docker build -t goals-node .
+
+# build frontend
+cd ../frontend
+docker build -t goals-react .
+
+# Spin up mongo db
+docker run --name mongodb --rm -d -v data:/data/db --network goals-net -e MONGO_INITDB_ROOT_USERNAME=max -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+
+# Spin up backend
+docker run -name goals-backend --rm -d -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/backend:/app -v logs:/app/logs -v /app/node_modules -p 80:80 --network goals-net goals-node
+
+# Spin up frontend
+docker run -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/frontend/src:/app/src -name goals-react --rm -d -it -p 3000:3000 goals-react
+```

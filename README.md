@@ -70,3 +70,58 @@ docker run -name goals-backend --rm -d -v /Users/jorge/Documents/git-repos/docke
 # Spin up frontend
 docker run -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/frontend/src:/app/src -name goals-react --rm -d -it -p 3000:3000 goals-react
 ```
+
+
+## Building Multi-Container Applications with DockerDocker Compose: Elegant Multi-Container Orchestration
+
+Docker Compose is a tool that allows you to replace docker build and run commands with just one configuration file and then a set of orchestration commands to start all those services, all these containers at once and build all necessary images, if it should be required. Several sections can be added to a docker compose file, but the most important is the services section, which specifies the containers configuration, within this section you can define ports, environment variables, volumes, networks... To work with docker compose you need to define a _docker-compose.yaml_ file, example with comments below:
+
+```yaml
+version: "3.8" # Check the latest version on docker docs
+services: # Define containers within this tag
+  mongodb: # indented by 2 spaces, this is the container identifier
+    image: "mongo" # official image name, url, or other identifiers (we don't need to add rm or d modes because they are default)
+    volumes: # List of volumes
+      - data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: max
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    # In case our environment variables are in a file, we can add the following (paths are relative to the docker-compose file)
+    # env_file:
+    #  - ./env/the_prop_file
+    # networks: # This tag is optional because with docker compose, the containers are automatically put in its own network
+    #   - goals-net          
+  backend: # This image was created with a docker file, so we need to instruct docker-compose how to find the Dockerfile
+    build: ./backend # This will look for this path relative to the docker-compose.yaml.
+    # build: # this is the longer form
+    #   context: ./backend # path to the docker file
+    #   dockerfile: Dockerfile # in case your file is not named 'Dockerfile', otherwise redundant
+    ports:
+      - "80:80"
+    volumes:
+      - logs:/app/logs
+      - ./backend:/app # Note that we can pass relative paths
+      - /app/node_modules # anonymous volume
+    depends_on: # To specify dependencies between the different containers
+      - mongodb
+  frontend:
+    build: ./frontend
+    container_name: goals-react # Assigning names explicitely
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+    stdin_open: true 
+    tty: true # The combination of stdin_open and tty is the equivalent to the -it parameter on docker run
+volumes: # Any named volumes declared in your services, needs to be added here (not anonymous volumes or bind mounts)
+  data:
+  logs:
+```
+
+Start the docker compose by running `docker-compose up (use -d for detach mode)` from the same folder your _docker-compose.yaml_ file is, stop it using `docker-compose down (use -v to remove volumes also)`. If you type `docker-compose up --help` you can see the options you can pass to this command, for example
+the `--build` parameter, which is used to build images before starting the containers (equivalent to docker-compose build).
+
+
+## Working with "Utility Containers" & Executing Commands In Containers

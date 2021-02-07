@@ -120,8 +120,37 @@ volumes: # Any named volumes declared in your services, needs to be added here (
   logs:
 ```
 
-Start the docker compose by running `docker-compose up (use -d for detach mode)` from the same folder your _docker-compose.yaml_ file is, stop it using `docker-compose down (use -v to remove volumes also)`. If you type `docker-compose up --help` you can see the options you can pass to this command, for example
-the `--build` parameter, which is used to build images before starting the containers (equivalent to docker-compose build).
+Start the docker compose by running `docker-compose up (use -d for detach mode)` from the same folder your _docker-compose.yaml_ file is, stop it using `docker-compose down (use -v to remove volumes also)`. If you type `docker-compose up --help` you can see the options you can pass to this command, for example the `--build` parameter, which is used to build images before starting the containers (equivalent to docker-compose build).
 
 
 ## Working with "Utility Containers" & Executing Commands In Containers
+
+Utility containers are those which only have an environment in them, like a php or node environment (but no application). To demonstrate this feature, you can execute something like `docker run -it -d node`, which would run node in interactive mode, but also detached, so the container is still waiting for inputs. You can connect to this running container with `docker exec <opts> <container name> <command to execute>`. With docker exec you can run commands in a running container without interrupting the default command. You can also overwrite the default command when running a container, you do this like `docker run <opts> <container name> <command to execute>`.
+To construct this utility containers, it is possible to not add a `CMD` or `ENTRYPOINT` command to the docker file. Using this in conjunction with bind mounts, it is possible to have a development environment without the need of installing new tools, without the inconvenience of having to install those extra tools.
+What if we want to create a utility container that restricts the commands we want to allow to run? For example a node utility container that only allows to run _npm_ commands?  The answer to that question is the _ENTRYPOINT_ command. This command is quite similar to the _CMD_ instruction, but the key difference here is that if we use _CMD_ in a docker file and call something like `docker run <opts> <container name> <command to execute>`, the `<command to execute>` will overwrite the CMD instruction, while with _ENTRYPOINT_ the `<command to execute>` is appended to the entry point. imagine that we have a Dockerfile with the following content:
+
+```Dockerfile
+FROM node
+
+WORKDIR /app
+
+ENTRYPOINT ["npm"]
+```
+
+we will be able to execute the following to initiate the container: `docker run -it node install`, which will be the equivalent of running `npm install` inside the container. To use this concept in a docker compose file so we can type less stuff, we can do something like the example below:
+
+```yaml
+version: "3.8"
+services:
+  npm:
+    build: ./
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/app
+```
+
+And then instead of using `docker-compose up`, we can use `docker-compose exec` to run docker compose commands in running containers, but we do have `docker-compose run <service name (npm)> <command to be appended to the entry point>`. The problem with this approach is that as opposite of using `docker-compose down` which removes the stopped containers, this doesn't happen when we use the `docker-compose run ...` so we need to add `docker-compose run --rm <command>`.
+
+
+## Deploying Docker Containers

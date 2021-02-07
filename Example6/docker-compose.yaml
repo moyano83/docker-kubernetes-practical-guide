@@ -1,0 +1,42 @@
+version: "3.0"
+services:
+  server:
+    image: 'nginx:stable-alpine'
+    ports: 
+      - '8000:80'
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: 
+      - php
+      - mysql
+  php:
+    build: 
+      context: ./php
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated # Delegates improves performances as writes to this volume are processed in batches, not instantaneously
+  mysql:
+    image: 'mysql:5.7'
+    env_file: 
+      - './env/mysql.env'
+  composer:
+    build:
+      context: ./composer
+      dockerfile: Dockerfile
+    volumes: 
+      - ./src:/var/www/html
+    # Before defining the other two containers, we can test our setup by runnning:
+    # docker-compose run --rm composer create-project --prefer-dist laravel/laravel .
+    # Once you have done this, set the appropriate config variables at src/.env (MYSQL Vars)
+    # After building composer, we can test the services by running service,php and mysql like this:
+    # docker-compose up -d server php mysql
+  artisan: # This is a php command to use to populate initial data
+    build: 
+      context: ./php
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/var/www/html
+    entrypoint: ["php", "/var/www/html/artisan"] # php is a utility container, we need to provide an entrypoint
+  #npm:
+  

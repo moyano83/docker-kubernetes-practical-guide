@@ -154,3 +154,45 @@ And then instead of using `docker-compose up`, we can use `docker-compose exec` 
 
 
 ## Deploying Docker Containers
+
+A container is a self-contained application with its code which can be shipped to other machines like production. Some of the differences to consider here are:
+    
+    * In production as oppose to development, you shouldn't really use bind mounts
+    * Containerized apps might need a build step
+    * Multi container project might need to be split across multiple hosts
+    * Trade-offs between control and responsibility might be worth it
+
+You can run an ec2 instance on AWS and then install docker like `sudo amazon-linux-extras install docker`, then you can start the service with `sudo servide docker start`. Once the service is started, you can start running your images there which you can do by copying  your project there and build it in ec2 or to build it locally and push the image into docker hub, and then pull it in your ec2 instance. For that you need to execute `docker login`, create a repo in docker hub, rename your image to match the created tag, and push it using `docker push <image>`. By default, your EC2 instance would only have the port 22 open for SSH connections, but by editing security groups, you can allow traffic to any port used by docker.In case you make any change to your image, you need to update your image and add a new tag to your image in the docker repo, and then connect to the ec2 instance, top the running image, and then pull the latest image and then run the image again. 
+Obviously this "manual" approach is very cumbersome, because you own the machine and securitization of it, you need to manually update images, requires a lot of learning... To deal with this issues, there is another approach which is to use AWS ECS (Elastic Container Service). This means you have to follow the approach provided by amazon to create, manage and update automatically the containers, monitor and scale if appropriate the services which is simplified in this way.
+
+### Multi-stage builds
+
+There are times when you might want to have different final images depending on the environmnet you want to deploy  your image into. For example you might not want to expose a port, or to run a command like build, which might be required in lower environments. Multi-Stage builds allow you to have one Dockerfile, that define multiple build steps or setup steps, so called "stages" inside of that file. Stages can copy results from each other, so we can have one stage to create the optimized files and another stage to serve them. We can either build the entire Dockerfile going through all stages, step by step from top to bottom or we select individual stages up to which we wanna build, skipping all stages that would come after them that are multi-stage builds and multi-stage Dockerfiles.
+
+So imagine that you want some steps to build some optimized files, and then you want to copy those files into another base image, but without having all the intermediate files that were required to get there (for example using node). An docker example is shown below:
+
+```Dockerfile
+FROM node:14-alpine as build_img
+
+WORKDIR /app
+
+COPY package.json .
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+# Now we want to use the output  of the above commands into ngnix, we can have two FROM tags and we reference to the above like this:
+FROM nginx:stable-alpine
+
+COPY --from=build_img /app/build /usr/share/ngnix/html
+
+EXPOSE 80
+
+CMD ["ngnix", "-g", "daemon off;"]
+```
+
+Imagine we just want to build the above image up to the point it calls the npm command, we can do that by running:
+`docker build --target build_img -f <Dockerfile>`

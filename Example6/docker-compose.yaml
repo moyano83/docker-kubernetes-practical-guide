@@ -38,5 +38,11 @@ services:
     volumes:
       - ./src:/var/www/html
     entrypoint: ["php", "/var/www/html/artisan"] # php is a utility container, we need to provide an entrypoint
-  #npm:
-  
+  npm:
+    image: node:14
+    working_dir: /var/www/html
+    entrypoint: ["npm"]
+    volumes:
+      - ./src:/var/www/html
+  # Just like before, we can test the artisan command with:
+  # docker-compose run --rm artisan migrate

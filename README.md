@@ -319,3 +319,95 @@ There are certain things that kubernetes needs in order to run a cluster. For ex
     * Cluster: The sum of your master nodes, worker nodes and all the services in them. It translates as a set of instructions to be sent to your cloud provider
 
 There is an extra concept to keep in mind, the Services, which are logical sets, groups of Pods with a unique Pod and Container-independent IP address. Services are important to ensure certain containers can be reached with a certain logical domain.
+
+## Kubernetes in Action - Diving into the Core Concepts
+
+As a developer, you need to set the infrastructure, kubernetes is not a cloud service provider or a deployment tool, it just handles the lifecycle of your application (although there are some tools like the kubermatic that can help you to set this up in some cloud providers, AWS has its own elastic kubernetes service).
+
+To run Kubernetes we need to have a cluster, which needs at least a master node and one or more worker nodes (also requires some mandatory software). Then we have a client tool called _kubectl_, which is used to send instructions to the cluster, for example, create a cluster, add more pods and others. Refer to the [guide](https://kubernetes.io/docs/tasks/tools/) for installation steps.
+For local testing, _Minikube_ can be used, which is a tool that runs a virtual machine to help you create "virtual" clusters in the air, and uses a single node cluster to handle the master and worker nodes (you still need kubectl).
+
+As explained before, a _Pod_ is the smallest unit kubernetes can manage, it might have one or more services, and by default it has a cluster interal IP address. Pods are ephemeral, kubernetes starts, stops and replace them as needed. For pods to be managed with you, you need a controller, which is a _Deployment_ object.
+
+### Deployment objects
+
+The _Deployment_ objects is able to control one or more pods, the idea behind this object is that we pass a target state (desired), and kubernetes will get us there. With this object we can also pause or delete deployments and even roll them back. Deployments can also be scaled (manually or automatically).
+
+If we use the Example7 (build the image first with `docker build -t kub-first-app .`), we can instruct kubernetes to deploy our image, first we need to check if the kubernetes minikube is running with `minikube status`, if it is not running use `minikube start --driver=virtualbox`, and you can inspect the cluster with `minikube dashboard` which will open a page in your browser with information about the cluster. To deploy the container we use _kubectl_ (check docs with `kubectl help`), and we create a deployment object `kubectl create deployment <deployment-name> --image=<image to deploy>` (You can inspect the existing deployments with `kubectl get deployments`). The previous deployment creation will fail due to image pull errors, this is because the kubernetes cluster acts like a totally different machine and won't have the image available as it needs to be on the docker registry.
+
+To reach a pod and the container within the pod, we need a _Service_, which is responsible from exposing pods to users or external addresses, this is because Pods have internal IP addresses and they are constantly removed and redeployed. To create a _Service_ we can run `kubectl expose deployment <deployment-name> --port <port-number> --type=(ClusterIP|NodePort|LoadBalancer)`. The _LoadBalancer_ type needs to be supported by the provider (Minikube does). If we run `kubectl get services` after running the expose, we can see there is a new object of type LoadBalancer which has a EXTERNAL-IP property, which is the IP by which the service is reachable, but if we want to check a particular service, we can do `kubectl service <deployment-name>` and this will display properties (including the reachable url to the service).
+
+To scale an application, we can submit the command `kubectl scale deployment/<deployment-name> --replicas=3` and this will set 3 replicas od the app. It is also possible to update an image with the following command `kubectl set image deployment/<deployment-name> <image-name>=<new-image-name>`, the previous command will only suceed if the new image has a different tag than the previous image, otherwise it won't. Once you issue this command, you can see the current deployment status by executing `kubectl rollout status deployment/<deployment-name>`. If for whatever reason we need to rollback a deployment, we use `kubectl rollout undo deployment/<deployment-name>`, which will undo the latest deployment, but you can also rollback to an older deployment by first, checking the history with `kubectl rollout history deployment/<deployment-name>:<optional-revision-number>`, then grabing the revision number we want to rollback to and then run `kubectl rollout undo deployment/<deployment-name> --to-revision=<revision-number>`.
+
+### Kubernetes Declarative Approach
+
+To run kubernetes in a declarative approach, we need to create a resource file and run the command `kubectl apply -f <path-to-yaml-file>`, in a similar way we did with the docker-compose approach. An example of the yaml file neede is shown below:
+
+```yaml
+apiVersion: apss/v1 #Check the kubernetes.io for which is the latest one 
+kind: Deployment # Kind of the kubernetes object you want to deploy Deployment/Service/Job
+metadata: # This is a defined structure, check the reference to see the available fields
+  name: second-deployment # Up to you to set the name  
+spec: # This is how the deployment is configured
+  replicas: 1 # Number of replicas of this service to run
+  selector: # Because the deployment is dynamic, we need to add a selector to indicate kubernetes, which of the containers defined below should it take care of
+    matchLabes: # This is to match over the template/metadata/labels
+      - app: second-app
+  template: # This is to create a deployment
+    metadata: 
+      labels: 
+        app: second-app # This 'app' property can be anything, it is a label to attach to this pod
+    spec: # This is the specification for individual pods, as opose as the previous which was for the deployment
+      containers: # Allows us to define containers which should be need as part of this pod
+        - name: second-node
+          image: academy/kub-first-app # Docker image
+          imagePullPolicy: Always # Always pull the latest image, you can achieve the same by adding :latest on the image tag
+          livenessProbe: # Check to see if your deployment is healthy or not
+            httpGet: # Do a get to check the liveness of the pod, check the documentation to see the different types of livenessProbe
+              path: / # Access the base path
+              port: 8080 # The port can be different, in this case is the same
+            periodSeconds: 3 # how often this check is done 
+            initialDelaySeconds: 30 # How long kubernetes should wait to check the liveness for the first time
+        # - name: other node
+        #   image: other/image
+```
+
+In the case we want to declare a service yaml file, we do it similarly to the above one. An example is shown below:
+
+```yaml
+apiVersion: v1 # Service version is different to the deployment version, check the documentation for the latest one
+kind: service # Type is service
+metadata:
+  name: backend # This is the name given to the service
+spec:  
+  selector: # In services, only label match is allowed, so you just need to add the labels to match to
+    app: second-app # Sects all pods from the deployment with a value of app equal to second-app
+  ports:
+    - protocol: 'TCP' # TCP is the default, but we make it explicit
+      port: 80 # Internal container port
+      targetPort: 8080 # Outside port, the port that should be exposed
+  type: ClusterIP # This is the default, values are the same than for the option type in the imperative command 
+```
+
+We also use this file with the command `kubectl apply -f <path-to-yaml-file-1>,<path-to-yaml-file-2>,...`. To update a deployment, simply change the value you want in the yaml file, and reapply the file with `kubectl apply -f ...`. To delete a deployment, you can use the imperative way, since kubernetes does not care how the deployment or service was created on the first place, use `kubectl delete deployment <deployment-name>` or use `kubectl delete -f=<yaml-file-1> -f=<yaml-file-2>`.
+
+You can merge multiple files into a single one, for that, separate the declaration with three dashes, like:
+
+```yaml
+apiVersion: v1
+kind: service 
+# Some other definition below
+--- # This is the separator
+apiVersion: apss/v1 
+kind: Deployment
+# Some other definition below
+```
+
+In the more advanced deployment definition, aside the _matchLabel_ selector we also have the _matchExpression_ selector, a snippet is shown below:
+
+```yaml
+matchExpression: # All the expressions have to be satisfied in order to have a matching object
+  - {key: app, values: [second-app, first-app], operator: in} # only a bunch of operators are allowed: in, NotIn and exists
+```
+You can use selectors in the delete statement like in `kubectl delete <comma-separated-type-of-resources> -l <key>=<value>`.
+There is other options that can be configured within this configuration file such as environment variables, how the image should be pulled and many others. Check the [documentation](https://kubernetes.io/docs/reference/kubernetes-api/) for more details.

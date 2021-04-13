@@ -592,3 +592,25 @@ spec:
 
 ## Kubernetes Networking
 
+In kubernetes, an application that is in the same pod but different container than another, can be reached from another container in the same pod by using the localhost address and the port exposed by the container.
+
+For containers deployed in separate pods but on the same cluster, we need to create multiple services. In the case that we want to make a container accessible from another pod but not accessible from the public, we need the to create a new service:
+
+```yaml
+apiVersion: v1
+kind: Service 
+metadata:
+  name: the-service
+spec:
+  selector:
+    app: selector-app
+  type: ClusterIP # this does automatic load balancing, but it is not exposed to the public
+  ports:
+    - protocol: TCP
+      port: 80 # This is the exposed port
+      targetPort: 80 # This is the container port
+```
+
+Kubernetes exposes automatically generated environment variables in your program with information of all services running in your cluster, like IPs and so on. The name of the variable is the same as the service name, all caps with '-' replaced by '_' and a postfix '_SERVICE_HOST'. So in the above example, we will have an environment variable called 'THE_SERVICE_SERVICE_HOST' containing the IP of the 'the-service'.
+
+Kubernetes cluster by default comes with a built-in service called CoreDNS, which help you with internal domain addresses. So for internal addresses, the services created *will be reachable by <service_name>.<namespace-name>*, similar to what happened in docker compose. You can see what namespaces are available by running `kubectl get namespaces`, and if you don't specify it, they are put in the 'default' namespace so the above service is reachable in 'the-service.default'.

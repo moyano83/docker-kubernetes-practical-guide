@@ -433,7 +433,10 @@ the [documentation](https://kubernetes.io/docs/reference/kubernetes-api/) for mo
 
 ## Managing Data & Volumes with Kubernetes
 
-State is data created and used by your application which should not be lost, and we are able to mount volumes in containers using Kubernetes. Kubernetes supports a broad range of volumes and drivers, like local, cloud providers... The volume lifetime depends on the pod lifetime, they are pod specific. It survives container restarts, but they are removed with the pod. The different type of volumes can be checked [here](http://kubernetes.io/docs/concepts/storage/volumes).
+State is data created and used by your application which should not be lost, and we are able to mount volumes in containers using Kubernetes.
+Kubernetes supports a broad range of volumes and drivers, like local, cloud providers... The volume lifetime depends on the pod lifetime, they are pod
+specific. It survives container restarts, but they are removed with the pod. The different type of volumes can be
+checked [here](http://kubernetes.io/docs/concepts/storage/volumes).
 
 ### EmptyDir volume type
 
@@ -465,11 +468,13 @@ spec:
           emptyDir: {} # This means we don't have any specific configuration for this, this directory survives container restarts
 ```
 
-The _emptyDir_ volume is basic and does the job, but can lead to problems in case we have multiple replicas and pods and the volume is closely attached to the pods and data can be lost in case the pod is lost. 
+The _emptyDir_ volume is basic and does the job, but can lead to problems in case we have multiple replicas and pods and the volume is closely
+attached to the pods and data can be lost in case the pod is lost.
 
 ### hostPath volume type
 
-As opposed to the _emptyDir_, _hostPath_ volume mounts a file or directory from the host node's filesystem into your pod, so multiple pods can use the same volume. To configure the hostPath, we need to change some config values in the deployment yaml file:
+As opposed to the _emptyDir_, _hostPath_ volume mounts a file or directory from the host node's filesystem into your pod, so multiple pods can use the
+same volume. To configure the hostPath, we need to change some config values in the deployment yaml file:
 
 ```yaml
 # Cut from the previous example
@@ -487,15 +492,20 @@ spec:
         type: DirectoryOrCreate # This is to let kubernetes know how the above path should be handled, check for the different options (creates it if it doesn't exists)
 ```
 
-The problem with this volume type is that it is node specific, so multiple replicas running in different nodes won't share the same data. At the same time it is great to share existing data.
+The problem with this volume type is that it is node specific, so multiple replicas running in different nodes won't share the same data. At the same
+time it is great to share existing data.
 
 ### CSI volume type
 
-CSI is an achronym for Container Store Interface, and it is like an API to expose a volume, so anyone can write driver solutions for a different storage type and expose this interface to make use of it.
+CSI is an achronym for Container Store Interface, and it is like an API to expose a volume, so anyone can write driver solutions for a different
+storage type and expose this interface to make use of it.
 
 ### From Volumes to Persistent Volumes
 
-The volumes seen has a disatvantage which is that they are removed when the pod is removed. To solve this problem kubernetes has persistent volumes, which are pod and node independent. A Persistent Volume is a new entity in the cluster, which is detached from the Nodes and Pods. To comunicate with them the pods have persisten volume claims, which can reach to these volumes and claim access to them. The types of this resources are similar to the ones defined before.
+The volumes seen has a disatvantage which is that they are removed when the pod is removed. To solve this problem kubernetes has persistent volumes,
+which are pod and node independent. A Persistent Volume is a new entity in the cluster, which is detached from the Nodes and Pods. To comunicate with
+them the pods have persisten volume claims, which can reach to these volumes and claim access to them. The types of this resources are similar to the
+ones defined before.
 
 To define a Persistent Volume, we can create them by creating a separate yaml file. The example below would work only in a one node environment:
 
@@ -518,7 +528,8 @@ spec: # Configuration of the persistent volume
     type: DirectoryOrCreate
 ```
 
-With the above file defined, we can create persistent volume claims so we can use the volume in the pods. Below is an example of a claim yaml configuration:
+With the above file defined, we can create persistent volume claims so we can use the volume in the pods. Below is an example of a claim yaml
+configuration:
 
 ```yaml
 apiVersion: v1
@@ -535,7 +546,8 @@ spec:
       storage: 4Gi # We request the full capacity of the volume
 ```
 
-As we can see, the above does not stablish the connection between the volume and the pod, we need to do that in the deployment yaml file, in the volumes keyword:
+As we can see, the above does not stablish the connection between the volume and the pod, we need to do that in the deployment yaml file, in the
+volumes keyword:
 
 ```yaml
 # Simplified 
@@ -545,12 +557,17 @@ volumes: # Here we define the volumes that should be available for all container
         claimName: host-pvc # Name of the created claim
 ```
 
-Kubernetes has something called storage classes, you have one storage class by default which you can see by running `kubectl get sc` and will display something like _standard (default)_, which we also defined with the _storageClassName_ in the deployment and claim yaml configuration files. You can apply the configuration with the `kubectl apply -f=...` command, and see the persistent volumes created with `kubectl get pv`, and the claims with `kubectl get pvc`.
-In certain situations, "normal" volumes can be used if the data is not critical, like for example for logs or application generated data, but setting this type of volumes can be repetitive, which can be solved by using persistent volumes, which can be defined once an used multiple times.
+Kubernetes has something called storage classes, you have one storage class by default which you can see by running `kubectl get sc` and will display
+something like _standard (default)_, which we also defined with the _storageClassName_ in the deployment and claim yaml configuration files. You can
+apply the configuration with the `kubectl apply -f=...` command, and see the persistent volumes created with `kubectl get pv`, and the claims
+with `kubectl get pvc`. In certain situations, "normal" volumes can be used if the data is not critical, like for example for logs or application
+generated data, but setting this type of volumes can be repetitive, which can be solved by using persistent volumes, which can be defined once an used
+multiple times.
 
 ### Environment variables
 
-Imagine that you want to set an environment variable and use that in the yaml file, for example a volume internal path. A way to achieve this is to go to the place we have defined our pods, and in the containers keyword add something like the example below:
+Imagine that you want to set an environment variable and use that in the yaml file, for example a volume internal path. A way to achieve this is to go
+to the place we have defined our pods, and in the containers keyword add something like the example below:
 
 ```yaml
 spec:
@@ -563,7 +580,8 @@ spec:
       volumeMounts: ...
 ```
 
-But if you don't want to have your environment variables in a separate resource, like a new file, you can do so you can define a new yaml file and set a config map on it:
+But if you don't want to have your environment variables in a separate resource, like a new file, you can do so you can define a new yaml file and set
+a config map on it:
 
 ```yaml
 apiVersion: v1
@@ -592,9 +610,11 @@ spec:
 
 ## Kubernetes Networking
 
-In kubernetes, an application that is in the same pod but different container than another, can be reached from another container in the same pod by using the localhost address and the port exposed by the container.
+In kubernetes, an application that is in the same pod but different container than another, can be reached from another container in the same pod by
+using the localhost address and the port exposed by the container.
 
-For containers deployed in separate pods but on the same cluster, we need to create multiple services. In the case that we want to make a container accessible from another pod but not accessible from the public, we need the to create a new service:
+For containers deployed in separate pods but on the same cluster, we need to create multiple services. In the case that we want to make a container
+accessible from another pod but not accessible from the public, we need the to create a new service:
 
 ```yaml
 apiVersion: v1
@@ -611,6 +631,15 @@ spec:
       targetPort: 80 # This is the container port
 ```
 
-Kubernetes exposes automatically generated environment variables in your program with information of all services running in your cluster, like IPs and so on. The name of the variable is the same as the service name, all caps with '-' replaced by '_' and a postfix '_SERVICE_HOST'. So in the above example, we will have an environment variable called 'THE_SERVICE_SERVICE_HOST' containing the IP of the 'the-service'.
+Kubernetes exposes automatically generated environment variables in your program with information of all services running in your cluster, like IPs
+and so on. The name of the variable is the same as the service name, all caps with '-' replaced by '_' and a postfix '_SERVICE_HOST'. So in the above
+example, we will have an environment variable called 'THE_SERVICE_SERVICE_HOST' containing the IP of the 'the-service'.
 
-Kubernetes cluster by default comes with a built-in service called CoreDNS, which help you with internal domain addresses. So for internal addresses, the services created *will be reachable by <service_name>.<namespace-name>*, similar to what happened in docker compose. You can see what namespaces are available by running `kubectl get namespaces`, and if you don't specify it, they are put in the 'default' namespace so the above service is reachable in 'the-service.default'.
+Kubernetes cluster by default comes with a built-in service called CoreDNS, which help you with internal domain addresses. So for internal addresses,
+the services created *will be reachable by <service_name>.<namespace-name>*, similar to what happened in docker compose. You can see what namespaces
+are available by running `kubectl get namespaces`, and if you don't specify it, they are put in the 'default' namespace so the above service is
+reachable in 'the-service.default'.
+
+## Kubernetes Deployment (AWS EKS)
+
+AWS EKS stands for AWS Elastic Kubernetes Service, a service provided by amazon to handle kubernetes clusters.

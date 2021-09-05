@@ -13,15 +13,15 @@ attached mode (which doesn't allow us to execute more commands on the terminal).
 the command, or attach to a container with `docker attach <id>`. Use `docker logs <id>` to inspect the container logs, or use `docker logs -f <id>` to
 follow the logs after you execute the command. Use `docker rm <id>` to remove a stopped container, `docker rmi <id>` to remove an
 image, `docker images prune` to remove unused images (use `-a` option to remove all images). If you want to remove the container automatically when it
-is stopped use `--rm` option on docker run.Use `docker image inspect <id>` to get details of a docker image. To copy files into/out to a running
+is stopped use `--rm` option on `docker run`. Use `docker image inspect <id>` to get details of a docker image. To copy files into/out to a running
 container, we can do it with `docker cp <src> <dst>` where src is a local folder or a docker path in the form of <docker_name>:/<path> and dst is a
-path to copy to (the path will be created if it doesn't exists). You can name a container with the `--name` option to the run command. Also a tag can
+path to copy to (the path will be created if it doesn't exist). You can name a container with the `--name` option to the run command. Also, a tag can
 be given to an image, on build do: `docker build . -t <docker_name>:<tag>`. Docker has build in commands to share images through Docker Hub or a
 private registry, for that create an account in docker hub and once your image is ready, do `docker push <repo_name>/<img_name>:<tag>` if you want to
 publish to docker hub, or use `docker push <host>:<port>/<repo_name>/<img_name>:<tag>` to push to a private registry. To pull images
-use `docker pull <image>`. If you want to retag an image so it is in sync with the remote to push it,
-use `docker tag <old_tag> <repo_name>/<img_name>`. If you want to push/pull from a private repo, make sure to login with `docker login` (
-use `docker logout` to close the session).
+use `docker pull <image>`. If you want to retag an image so it is in sync with the remote to push it, use
+`docker tag <old_tag> <repo_name>/<img_name>`. If you want to push/pull from a private repo, make sure to log in with `docker login` (use
+`docker logout` to close the session).
 
 ## Managing Data & Working with Volumes
 
@@ -39,24 +39,25 @@ case the path in the container that we are mapping the local folder into is not 
 contents of the folder we are mapping, unless we merge the contents of both folders using anonymous volumes. Declare the path on your dockerfile using
 VOLUME or use `-v <volume_name>` (note we are not mapping or naming the volume, just declaring it). Docker uses a rule where the more specific (
 longer) path declared prevails, so we can map do something like `-v /tmp:/tmp` where the tmp folder in local is mapped into the container, but we can
-also declare a specific folder to be maintain within that path like this: `-v /tmp/path_to_keep`. To summarize:
+also declare a specific folder to be maintained within that path like this: `-v /tmp/path_to_keep`. To summarize:
 
     * Use `docker run -v <container_path` for anonymous volumes that won't be kept on container removed (can't share or save data).
-    * use `docker run -v <name>:<container_path>` for named volumes that can be reused. Can't be created on the dockerfile, not tied to a container and survives shutdowns (can share or save data).
-    * Use `docker run -v <local_path>:<container_path>` for bind mounts. Survives container removal, you need to remove from local to delete it. (can share or save data).
+    * use `docker run -v <name>:<container_path>` for named volumes that can be reused. Can't be created on the dockerfile, not tied to a container 
+      and survives shutdowns (can share or save data).
+    * Use `docker run -v <local_path>:<container_path>` for bind mounts. Survives container removal, you need to remove from local to delete it. 
+      (can share or save data).
 
-In case we are using bind mounts, we might want to make it read only to avoid the container overwritting some file system files. For that you
+In case we are using bind mounts, we might want to make it read only to avoid the container overwriting some file system files. For that you
 use  `docker run -v <local_path>:<container_path>:ro`, the _ro_ at the end stands for read-only. You can still use an anonymous volume on that path
 and write on it (always passing it in the command line option, not on the docker file). i.e `docker run -v /tmp:/tmp:ro -v /tmp/app_data mycontainer`
-so we map _/tmp_ but because the container's _
-/tmp/app_data_ is more specific that _/tmp_, the configuration passed to create an anonymous volume overwrittes the config _
-ro_. Volumes can also be created with the command line using `docker volumes create <volume_name>` and then use the volume on the run command. Check
-the volumes with `docker volumes inspect <volume_name>` and remove them with `docker volumes rm <volume_name>` (only if the volume is not in use). The
-reason that we still use the COPY instruction having bind mounts available is that whatever you map to the container might not be transferrable (paths
-or files might not exists in other nodes), so you still want to copy those files in the images that would be deployed somewhere else, althought is
-still useful for development purposes. In the case you don't want to copy certain files into the image but you want to use a non specific copy
-instructions, you can exclude files and folders by using the  _.dockerignore_ file. just create this file at the same path where your Dockerfile is
-and put there the files and folders you want to exclude (i.e. Dockerfile or .git).
+so we map _/tmp_ but because the container's _/tmp/app_data_ is more specific that _/tmp_, the configuration passed to create an anonymous volume
+overwrites the config _ro_. Volumes can also be created with the command line using `docker volumes create <volume_name>` and then use the volume on
+the run command. Check the volumes with `docker volumes inspect <volume_name>` and remove them with `docker volumes rm <volume_name>` (only if the
+volume is not in use). The reason that we still use the COPY instruction having bind mounts available is that whatever you map to the container might
+not be transferable (paths or files might not exists in other nodes), so you still want to copy those files in the images that would be deployed
+somewhere else, although is still useful for development purposes. In the case you don't want to copy certain files into the image but you want to use
+a non-specific copy instructions, you can exclude files and folders by using the  _.dockerignore_ file. just create this file at the same path where
+your Dockerfile is and put there the files and folders you want to exclude (i.e. Dockerfile or .git).
 
 ### Docker ARGuments and ENVironment variables
 
@@ -87,7 +88,8 @@ Docker Networks actually support different kinds of "Drivers" which influence th
 which provides the behavior described before. The driver can be set when a Network is created by adding the `--driver` option. Other options are:
 
     * host: For standalone containers, isolation between container and host system is removed (they share localhost as a network)
-    * overlay: Multiple Docker daemons (i.e. Docker running on different machines) are able to connect with each other. Only works in "Swarm" mode (deprecated)
+    * overlay: Multiple Docker daemons (i.e. Docker running on different machines) are able to connect with each other. Only works in "Swarm" mode 
+      (deprecated)
     * macvlan: You can set a custom MAC address to a container - this address can then be used for communication with that container
     * none: All networking is disabled
     * Third-party plugins: You can install third-party plugins which then may add all kinds of behaviors and functionalities
@@ -112,10 +114,12 @@ docker build -t goals-react .
 docker run --name mongodb --rm -d -v data:/data/db --network goals-net -e MONGO_INITDB_ROOT_USERNAME=max -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
 
 # Spin up backend
-docker run -name goals-backend --rm -d -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/backend:/app -v logs:/app/logs -v /app/node_modules -p 80:80 --network goals-net goals-node
+docker run -name goals-backend --rm -d -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/backend:/app -v / 
+logs:/app/logs -v /app/node_modules -p 80:80 --network goals-net goals-node
 
 # Spin up frontend
-docker run -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/frontend/src:/app/src -name goals-react --rm -d -it -p 3000:3000 goals-react
+docker run -v /Users/jorge/Documents/git-repos/docker-kubernetes-practical-guide/Example5/frontend/src:/app/src -name goals-react --rm -d -it /
+-p 3000:3000 goals-react
 ```
 
 ## Building Multi-Container Applications with DockerDocker Compose: Elegant Multi-Container Orchestration
@@ -291,7 +295,8 @@ handled by ourselves. It is like a docker compose in multiple machines.
 There are certain things that kubernetes needs in order to run a cluster. For example you have to create the kubernetes software on the nodes. Some
 basic concepts are:
 
-    * Pod (Container): Smallest possible unit in kubernetes you can define and create. Host one or more application containers and their resources (Volumes, IPs)
+    * Pod (Container): Smallest possible unit in kubernetes you can define and create. Host one or more application containers and their resources 
+      (Volumes, IPs)
     * Worker Node: A virtual instances with RAM and CPU. It has the following elements
         - Proxy: Element of the worker node to be configured to handle network traffic.
         - Pods: You can run one or multiple pods in a worker node.
@@ -300,9 +305,11 @@ basic concepts are:
     * Master Node: Control center/plane or machine that coordinates the worker nodes and the deployment of pods on them. Might be redundant.
         - API Server: counterpart of the kubelet, for the communication between worker and master node. 
         - Scheduler: Service responsible for watching our pods and choosing worker nodes, creating, scaling, deleting pods...
-        - Kube-controller-manager: Watches and controls the worker nodes, is responsible for ensuring that we get the correct number of pods up and running.
+        - Kube-controller-manager: Watches and controls the worker nodes, is responsible for ensuring that we get the correct number of pods up and 
+          running.
         - Cloud-controller-manager: Cloud specific version of the kube controller manager. Translate instructions from AWS, AZURE or others.
-    * Cluster: The sum of your master nodes, worker nodes and all the services in them. It translates as a set of instructions to be sent to your cloud provider
+    * Cluster: The sum of your master nodes, worker nodes and all the services in them. It translates as a set of instructions to be sent to your 
+      cloud provider
 
 There is an extra concept to keep in mind, the Services, which are logical sets, groups of Pods with a unique Pod and Container-independent IP
 address. Services are important to ensure certain containers can be reached with a certain logical domain.
@@ -364,12 +371,12 @@ metadata: # This is a defined structure, check the reference to see the availabl
   name: second-deployment # Up to you to set the name  
 spec: # This is how the deployment is configured
   replicas: 1 # Number of replicas of this service to run
-  selector: # Because the deployment is dynamic, we need to add a selector to indicate kubernetes, which of the containers defined below should it take care of
+  selector: # Deployment is dynamic, so we need to add a selector to indicate kubernetes, which of the containers defined below should it take care of
     matchLabes: # This is to match over the template/metadata/labels
       - app: second-app
   template: # This is to create a deployment
-    metadata: 
-      labels: 
+    metadata:
+      labels:
         app: second-app # This 'app' property can be anything, it is a label to attach to this pod
     spec: # This is the specification for individual pods, as opose as the previous which was for the deployment
       containers: # Allows us to define containers which should be need as part of this pod
@@ -393,7 +400,7 @@ apiVersion: v1 # Service version is different to the deployment version, check t
 kind: service # Type is service
 metadata:
   name: backend # This is the name given to the service
-spec:  
+spec:
   selector: # In services, only label match is allowed, so you just need to add the labels to match to
     app: second-app # Sects all pods from the deployment with a value of app equal to second-app
   ports:
@@ -412,10 +419,10 @@ You can merge multiple files into a single one, for that, separate the declarati
 
 ```yaml
 apiVersion: v1
-kind: service 
+kind: service
 # Some other definition below
 --- # This is the separator
-apiVersion: apss/v1 
+apiVersion: apss/v1
 kind: Deployment
 # Some other definition below
 ```
@@ -424,7 +431,7 @@ In the more advanced deployment definition, aside the _matchLabel_ selector we a
 
 ```yaml
 matchExpression: # All the expressions have to be satisfied in order to have a matching object
-  - {key: app, values: [second-app, first-app], operator: in} # only a bunch of operators are allowed: in, NotIn and exists
+  - { key: app, values: [ second-app, first-app ], operator: in } # only a bunch of operators are allowed: in, NotIn and exists
 ```
 
 You can use selectors in the delete statement like in `kubectl delete <comma-separated-type-of-resources> -l <key>=<value>`. There is other options
@@ -447,14 +454,14 @@ apiVersion: apss/v1
 kind: Deployment
 metadata:
   name: deployment-name
-spec: 
+spec:
   replicas: 1
-  selector: 
+  selector:
     matchLabes:
       - app: selector-app
   template:
-    metadata: 
-      labels: 
+    metadata:
+      labels:
         app: selector-app
     spec:
       containers:
@@ -465,7 +472,7 @@ spec:
               name: volume-name # This matches the name of the volume defined below
       volumes: # Here we define the volumes that should be available for all containers in this pod definition
         - name: volume-name
-          emptyDir: {} # This means we don't have any specific configuration for this, this directory survives container restarts
+          emptyDir: { } # This means we don't have any specific configuration for this, this directory survives container restarts
 ```
 
 The _emptyDir_ volume is basic and does the job, but can lead to problems in case we have multiple replicas and pods and the volume is closely
@@ -489,7 +496,8 @@ spec:
     - name: volume-name
       hostPath:
         path: /data/docker-data # Path on the host machine where data should be stored (like bind mount)
-        type: DirectoryOrCreate # This is to let kubernetes know how the above path should be handled, check for the different options (creates it if it doesn't exists)
+        type: DirectoryOrCreate # To let kubernetes know how the above path should be handled, check for the different options (creates it if it 
+        # doesn't exists)
 ```
 
 The problem with this volume type is that it is node specific, so multiple replicas running in different nodes won't share the same data. At the same
@@ -538,10 +546,10 @@ metadata:
   name: host-pvc
 spec:
   volumeName: host-pv # Reference the persistent volume
-  accessModes: 
+  accessModes:
     - ReadWriteOnce
   storageClassName: standard
-  resources:  # This is to specify which resources do I want to get for this claim
+  resources: # This is to specify which resources do I want to get for this claim
     requests:
       storage: 4Gi # We request the full capacity of the volume
 ```
@@ -552,9 +560,9 @@ volumes keyword:
 ```yaml
 # Simplified 
 volumes: # Here we define the volumes that should be available for all containers in this pod definition
-    - name: volume-name
-      persistentVolumeClaim:
-        claimName: host-pvc # Name of the created claim
+  - name: volume-name
+    persistentVolumeClaim:
+      claimName: host-pvc # Name of the created claim
 ```
 
 Kubernetes has something called storage classes, you have one storage class by default which you can see by running `kubectl get sc` and will display
@@ -575,8 +583,8 @@ spec:
     - name: my-app
       image: image/my-app
       env: # Environment variables configuration key
-        -  name: STORAGE_FOLDER # Name of the env variable
-           value: /data/app # value of the environment variable
+        - name: STORAGE_FOLDER # Name of the env variable
+          value: /data/app # value of the environment variable
       volumeMounts: ...
 ```
 
@@ -600,10 +608,10 @@ spec:
     - name: my-app
       image: image/my-app
       env: # Environment variables configuration key
-        -  name: STORAGE_FOLDER # Name of the env variable, remains the same than before
-           valueFrom: 
+        - name: STORAGE_FOLDER # Name of the env variable, remains the same than before
+          valueFrom:
             configMapKeyRef:
-              name:  data-store-name # Id of the config map to use
+              name: data-store-name # Id of the config map to use
               key: STORAGE_FOLDER_MAP # Name of the config value to use within the config map
       volumeMounts: ...
 ```
@@ -618,7 +626,7 @@ accessible from another pod but not accessible from the public, we need the to c
 
 ```yaml
 apiVersion: v1
-kind: Service 
+kind: Service
 metadata:
   name: the-service
 spec:
